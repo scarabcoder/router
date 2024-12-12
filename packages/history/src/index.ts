@@ -5,6 +5,7 @@
 export interface NavigateOptions {
   ignoreBlocker?: boolean
 }
+
 export interface RouterHistory {
   location: HistoryLocation
   length: number
@@ -72,6 +73,7 @@ export function createHistory(opts: {
   flush?: () => void
   destroy?: () => void
   onBlocked?: (onUpdate: () => void) => void
+  notifyOnRelativeChange?: boolean
 }): RouterHistory {
   let location = opts.getLocation()
   const subscribers = new Set<(opts: { location: HistoryLocation }) => void>()
@@ -99,6 +101,9 @@ export function createHistory(opts: {
 
     task()
   }
+
+  const relativeChangeNotify =
+    opts.notifyOnRelativeChange === false ? () => {} : notify
 
   return {
     get location() {
@@ -132,19 +137,19 @@ export function createHistory(opts: {
     go: (index, navigateOpts) => {
       tryNavigation(() => {
         opts.go(index)
-        notify()
+        relativeChangeNotify()
       }, navigateOpts)
     },
     back: (navigateOpts) => {
       tryNavigation(() => {
         opts.back()
-        notify()
+        relativeChangeNotify()
       }, navigateOpts)
     },
     forward: (navigateOpts) => {
       tryNavigation(() => {
         opts.forward()
-        notify()
+        relativeChangeNotify()
       }, navigateOpts)
     },
     createHref: (str) => opts.createHref(str),
@@ -321,6 +326,7 @@ export function createBrowserHistory(opts?: {
         onUpdate()
       }
     },
+    notifyOnRelativeChange: false,
   })
 
   win.addEventListener(pushStateEvent, onPushPop)
